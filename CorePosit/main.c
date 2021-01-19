@@ -52,16 +52,18 @@ int main(int argc, const char * argv[]) {
 Posit16Decod decodeP16(Posit16 p, int8_t es) {
     uint8_t to_review = 15, r0 = 0, regime = 0;
     Posit16Decod out;
+    Posit16 a = p;
     
     // SIGN
-    out.sign = (p & (1 << to_review)) >> to_review;
+    out.sign = (a & (1 << to_review)) >> to_review;
     to_review -= 1; // we read 1 bit
     
-    
+    if(out.sign)
+        a = (~a) + 1;
     
     // REGIME
-    r0 = (p & (1 << to_review)) >> to_review; // first regime bit
-    regime = __builtin_clz((r0?~p:p) << ((sizeof(int)*8) - to_review - 1)); // find the first diffent bit
+    r0 = (a & (1 << to_review)) >> to_review; // first regime bit
+    regime = __builtin_clz((r0?~a:a) << ((sizeof(int)*8) - to_review - 1)); // find the first diffent bit
     to_review -= regime; // we read the bits of the regime
     out.regime = r0 == 0 ? -regime: regime - 1; // converting the regime to a mathematical value
     
@@ -70,17 +72,17 @@ Posit16Decod decodeP16(Posit16 p, int8_t es) {
     out.es = es; // Get the Exponent size (default is 1 for 16 bits)
     if(to_review <= es)
     {
-        out.exp = p & ((1 << to_review) - 1);
+        out.exp = a & ((1 << to_review) - 1);
         out.frac = 0;
         out.fs = 0;
         return out;
     }
-    out.exp = (p >> (to_review - es)) & ((1 << es) - 1); // extracting the exponent
+    out.exp = (a >> (to_review - es)) & ((1 << es) - 1); // extracting the exponent
     to_review-=es; // we read es bits
     
     
     // FRAC
-    out.frac = p & ((1 << to_review) - 1);
+    out.frac = a & ((1 << to_review) - 1);
     out.fs = to_review;
 
     return out;
